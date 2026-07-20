@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DVD Screensaver Maker</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="chassis">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-glow">&#9632;</span> DVD SCREENSAVER MAKER
+    </div>
+    <div class="topbar-sub">retro bouncing-logo studio</div>
+  </header>
+
+  <main class="layout">
+
+    <section class="screen-col">
+      <div class="tv" id="tv">
+        <div class="screen-frame">
+          <canvas id="screen" width="1280" height="720"></canvas>
+        </div>
+        <div class="rec-indicator" id="recIndicator" hidden>
+          <span class="rec-dot"></span> REC
+        </div>
+        <div class="upload-overlay" id="uploadOverlay">
+          <div class="upload-box" id="dropZone">
+            <p class="upload-title">DROP PNG HERE</p>
+            <p class="upload-sub">or click to browse</p>
+            <input type="file" id="fileInput" accept="image/png" hidden />
+          </div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button id="btnPlay" class="btn btn-primary" disabled>&#9654; PLAY</button>
+        <button id="btnPause" class="btn" disabled>&#10074;&#10074; PAUSE</button>
+        <button id="btnReset" class="btn" disabled>&#8634; RESET TO SEED</button>
+        <button id="btnFullscreen" class="btn">&#9974; FULLSCREEN</button>
+      </div>
+
+      <div class="export-row">
+        <label class="field-label" for="exportFormat">Export format</label>
+        <select id="exportFormat">
+          <option value="mp4">MP4</option>
+          <option value="mov">MOV</option>
+          <option value="gif">GIF</option>
+          <option value="mkv">MKV</option>
+          <option value="webm">WEBM</option>
+        </select>
+        <button id="btnExport" class="btn btn-accent" disabled>&#8681; EXPORT</button>
+        <span id="exportStatus" class="export-status"></span>
+      </div>
+    </section>
+
+    <aside class="panel">
+
+      <details class="card" open>
+        <summary>Logos</summary>
+        <div id="logoList" class="logo-list"></div>
+        <button id="btnAddLogo" class="btn btn-small" disabled>+ ADD LOGO</button>
+      </details>
+
+      <details class="card" open>
+        <summary>Global</summary>
+
+        <div class="field">
+          <label class="field-label" for="loopLength">Loop length: <span id="loopLengthVal">8</span>s</label>
+          <input type="range" id="loopLength" min="2" max="30" step="1" value="8" />
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="aspectRatio">Aspect ratio</label>
+          <select id="aspectRatio">
+            <option value="16:9" selected>16:9</option>
+            <option value="4:3">4:3</option>
+            <option value="21:9">21:9</option>
+            <option value="1:1">1:1</option>
+            <option value="9:16">9:16</option>
+          </select>
+        </div>
+
+        <div class="field field-toggle">
+          <label class="field-label" for="collisionToggle">Logo-on-logo collision</label>
+          <input type="checkbox" id="collisionToggle" />
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="motionBlur">Motion blur / afterimage: <span id="motionBlurVal">0</span></label>
+          <input type="range" id="motionBlur" min="0" max="5" step="1" value="0" />
+        </div>
+
+        <div class="field field-toggle">
+          <label class="field-label" for="crtToggle">CRT effects (scanlines / vignette / glow)</label>
+          <input type="checkbox" id="crtToggle" checked />
+        </div>
+
+        <div class="field">
+          <span class="field-label">Corner hits: <span id="cornerHitCount">0</span></span>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary>Color cycling</summary>
+        <div class="field field-toggle">
+          <label class="field-label" for="colorCycleToggle">Enable tint</label>
+          <input type="checkbox" id="colorCycleToggle" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="hueRotate">Hue rotate: <span id="hueRotateVal">0</span>&deg;</label>
+          <input type="range" id="hueRotate" min="0" max="360" step="1" value="0" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="brightness">Brightness: <span id="brightnessVal">100</span>%</label>
+          <input type="range" id="brightness" min="30" max="200" step="1" value="100" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="saturation">Saturation: <span id="saturationVal">100</span>%</label>
+          <input type="range" id="saturation" min="0" max="300" step="1" value="100" />
+        </div>
+        <div class="field field-toggle">
+          <label class="field-label" for="autoHueToggle">Auto-shift hue per bounce (bonus)</label>
+          <input type="checkbox" id="autoHueToggle" />
+        </div>
+      </details>
+
+    </aside>
+
+  </main>
+
+  <template id="logoCardTemplate">
+    <div class="logo-card" data-logo-id="">
+      <div class="logo-card-head">
+        <span class="logo-card-name">LOGO</span>
+        <button class="btn btn-tiny btn-remove" title="Remove logo">&times;</button>
+      </div>
+      <div class="logo-drop" data-role="drop">
+        <span data-role="filename">no file</span>
+        <input type="file" accept="image/png" hidden data-role="file-input" />
+      </div>
+      <div class="logo-dims" data-role="dims"></div>
+      <div class="field">
+        <label class="field-label">Size: <span data-role="sizeVal">100</span>%</label>
+        <input type="range" min="10" max="200" step="1" value="100" data-role="size" />
+      </div>
+      <div class="field">
+        <label class="field-label">Speed: <span data-role="speedVal">200</span> px/s</label>
+        <input type="range" min="20" max="900" step="10" value="200" data-role="speed" />
+      </div>
+      <div class="field">
+        <label class="field-label">Seed</label>
+        <div class="seed-row">
+          <input type="text" data-role="seed" value="" />
+          <button class="btn btn-tiny" data-role="randomize">&#9861;</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="config.js"></script>
+  <script src="js/prng.js"></script>
+  <script src="js/boundingBox.js"></script>
+  <script src="js/logo.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/main.js"></script>
+</div>
+</body>
+</html>
