@@ -104,6 +104,41 @@
       </details>
 
       <details class="card">
+        <summary>Background</summary>
+
+        <div class="field">
+          <label class="field-label" for="bgColor">Screen color</label>
+          <input type="color" id="bgColor" value="#05060a" />
+        </div>
+
+        <div class="field">
+          <label class="field-label">Background image (optional)</label>
+          <div class="logo-drop" id="bgDrop">
+            <span id="bgFilename">no file</span>
+            <input type="file" accept="image/png,image/jpeg,image/webp" hidden id="bgFileInput" />
+          </div>
+          <button id="btnRemoveBg" class="btn btn-small" disabled>REMOVE IMAGE</button>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="bgBlur">Blur: <span id="bgBlurVal">0</span>px</label>
+          <input type="range" id="bgBlur" min="0" max="20" step="1" value="0" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="bgHue">Hue rotate: <span id="bgHueVal">0</span>&deg;</label>
+          <input type="range" id="bgHue" min="0" max="360" step="1" value="0" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="bgBrightness">Brightness: <span id="bgBrightnessVal">100</span>%</label>
+          <input type="range" id="bgBrightness" min="30" max="200" step="1" value="100" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="bgSaturation">Saturation: <span id="bgSaturationVal">100</span>%</label>
+          <input type="range" id="bgSaturation" min="0" max="300" step="1" value="100" />
+        </div>
+      </details>
+
+      <details class="card">
         <summary>Color cycling</summary>
         <div class="field field-toggle">
           <label class="field-label" for="colorCycleToggle">Enable tint</label>

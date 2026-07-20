@@ -20,6 +20,11 @@ const app = {
     crtEnabled: true,
     collisionEnabled: false,
     colorCycle: { enabled: false, hue: 0, brightness: 100, saturation: 100, autoHue: false },
+    background: {
+      mode: "color",
+      color: "#05060a",
+      image: { img: null, blur: 0, hue: 0, brightness: 100, saturation: 100 },
+    },
   },
   playing: false,
   elapsed: 0,
@@ -252,6 +257,66 @@ motionBlurInput.addEventListener("input", () => {
 
 document.getElementById("crtToggle").addEventListener("change", (e) => {
   app.settings.crtEnabled = e.target.checked;
+});
+
+// background
+const bg = app.settings.background;
+
+document.getElementById("bgColor").addEventListener("input", (e) => {
+  bg.color = e.target.value;
+});
+
+const bgFilenameEl = document.getElementById("bgFilename");
+const btnRemoveBg = document.getElementById("btnRemoveBg");
+
+async function loadBackgroundImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+    bg.image.img = img;
+    bg.mode = "image";
+    bgFilenameEl.textContent = file.name;
+    btnRemoveBg.disabled = false;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+setupDropZone(document.getElementById("bgDrop"), document.getElementById("bgFileInput"), (file) => {
+  loadBackgroundImage(file);
+});
+
+btnRemoveBg.addEventListener("click", () => {
+  bg.mode = "color";
+  bg.image.img = null;
+  bgFilenameEl.textContent = "no file";
+  btnRemoveBg.disabled = true;
+});
+
+const bgBlurInput = document.getElementById("bgBlur");
+bgBlurInput.addEventListener("input", () => {
+  bg.image.blur = Number(bgBlurInput.value);
+  document.getElementById("bgBlurVal").textContent = bg.image.blur;
+});
+const bgHueInput = document.getElementById("bgHue");
+bgHueInput.addEventListener("input", () => {
+  bg.image.hue = Number(bgHueInput.value);
+  document.getElementById("bgHueVal").textContent = bg.image.hue;
+});
+const bgBrightnessInput = document.getElementById("bgBrightness");
+bgBrightnessInput.addEventListener("input", () => {
+  bg.image.brightness = Number(bgBrightnessInput.value);
+  document.getElementById("bgBrightnessVal").textContent = bg.image.brightness;
+});
+const bgSaturationInput = document.getElementById("bgSaturation");
+bgSaturationInput.addEventListener("input", () => {
+  bg.image.saturation = Number(bgSaturationInput.value);
+  document.getElementById("bgSaturationVal").textContent = bg.image.saturation;
 });
 
 // color cycling
