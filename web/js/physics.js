@@ -4,46 +4,41 @@
 const MAX_DT_SECONDS = 0.05; // clamp huge jumps (tab backgrounded, etc.)
 const AUTO_HUE_STEP_PER_BOUNCE = 25;
 
+// Reflects a 1D move of `d` from `p0` into [0, max] using a triangle-
+// wave fold, handling any overshoot magnitude (not just small overshoot
+// past one wall) in a single step instead of clamping the excess away.
+// `flipped` is true iff an odd number of wall bounces occurred, i.e.
+// the direction sign for this axis should invert.
+function reflect1D(p0, d, max) {
+  if (max <= 0) return { position: 0, flipped: false };
+  const period = 2 * max;
+  let t = (p0 + d) % period;
+  if (t < 0) t += period;
+  return t <= max ? { position: t, flipped: false } : { position: period - t, flipped: true };
+}
+
 // Advances one logo by dt seconds and resolves wall collisions.
 // Returns true if this frame's wall collision was a genuine corner hit
 // (simultaneous X and Y resolution within the same frame's movement).
 function stepLogoPhysics(logo, dt, canvasWidth, canvasHeight) {
   if (!logo.ready || !logo.box) return false;
 
-  logo.position.x += logo.dir.x * logo.speed * dt;
-  logo.position.y += logo.dir.y * logo.speed * dt;
-
   const maxX = Math.max(0, canvasWidth - logo.box.width);
   const maxY = Math.max(0, canvasHeight - logo.box.height);
 
-  let hitX = false;
-  let hitY = false;
+  const rx = reflect1D(logo.position.x, logo.dir.x * logo.speed * dt, maxX);
+  const ry = reflect1D(logo.position.y, logo.dir.y * logo.speed * dt, maxY);
 
-  if (logo.position.x <= 0) {
-    logo.position.x = 0;
-    logo.dir.x = Math.abs(logo.dir.x);
-    hitX = true;
-  } else if (logo.position.x >= maxX) {
-    logo.position.x = maxX;
-    logo.dir.x = -Math.abs(logo.dir.x);
-    hitX = true;
-  }
+  logo.position.x = rx.position;
+  logo.position.y = ry.position;
+  if (rx.flipped) logo.dir.x = -logo.dir.x;
+  if (ry.flipped) logo.dir.y = -logo.dir.y;
 
-  if (logo.position.y <= 0) {
-    logo.position.y = 0;
-    logo.dir.y = Math.abs(logo.dir.y);
-    hitY = true;
-  } else if (logo.position.y >= maxY) {
-    logo.position.y = maxY;
-    logo.dir.y = -Math.abs(logo.dir.y);
-    hitY = true;
-  }
-
-  if (hitX || hitY) {
+  if (rx.flipped || ry.flipped) {
     logo.autoHue = (logo.autoHue + AUTO_HUE_STEP_PER_BOUNCE) % 360;
   }
 
-  if (hitX && hitY) {
+  if (rx.flipped && ry.flipped) {
     logo.cornerHits++;
     return true;
   }

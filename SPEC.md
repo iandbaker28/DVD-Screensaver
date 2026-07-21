@@ -126,6 +126,37 @@ Single control, dual purpose:
   worth of animation, starting from the seed's initial state, so what's
   exported matches what's previewed.
 
+### Perfect loop mode
+
+A "Perfect loop" toggle picks the primary logo's bounce direction so the
+path is mathematically closed — it returns to its exact starting
+position *and* direction, not just a snap-back cut. This is the
+billiard-in-a-rectangle result: a bounce path only exactly retraces
+itself when its direction's slope is a rational multiple of the travel
+box's aspect ratio; a freely-random angle (the normal mode) essentially
+never does. When enabled:
+
+- The primary logo's direction is chosen from a small set of coprime
+  integer ratios (still biased away from near-axis angles) instead of a
+  free real-valued angle, and the loop length becomes a *computed*
+  value (`2 × pathLength / speed`) rather than a free slider — the Loop
+  Length control is disabled and shows the exact period.
+- Every other logo gets its own independent periodic direction, and its
+  speed is auto-derived so its path closes at the same computed period
+  as the primary logo, keeping a multi-logo scene in sync. Those logos'
+  speed sliders are disabled while the mode is on.
+- Size and aspect-ratio changes re-derive the direction against the new
+  bounds (same pattern, recomputed geometry) so the loop stays exact
+  after a resize.
+- Degenerate case: if the logo's bounding box doesn't fit the canvas
+  (zero travel room on an axis), perfect-loop direction picking is
+  skipped and it falls back to the normal random-angle behavior.
+
+Note this guarantee is exact in the physics model; real-time browser
+capture (MediaRecorder) has inherent frame-timing jitter, so an
+exported clip's actual loop seam will be extremely close but not
+bit-exact — well below the threshold of visible stutter.
+
 ---
 
 ## Controls / UI

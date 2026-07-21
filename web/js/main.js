@@ -16,6 +16,7 @@ const app = {
   settings: {
     aspectRatio: "16:9",
     loopLength: 8,
+    perfectLoop: false,
     motionBlur: 0,
     crtEnabled: true,
     collisionEnabled: false,
@@ -45,15 +46,51 @@ function applyCanvasSize() {
 
 function resetAllToSeed() {
   const [w, h] = canvasSize();
-  for (const logo of app.logos) initLogoSeedState(logo, w, h);
+  for (const logo of app.logos) initLogoSeedState(logo, w, h, app.settings.perfectLoop);
   app.elapsed = 0;
   app.flash = null;
   updateCornerHitDisplay();
+  syncPerfectLoop();
 }
 
 function updateCornerHitDisplay() {
   const total = app.logos.reduce((sum, l) => sum + l.cornerHits, 0);
   document.getElementById("cornerHitCount").textContent = String(total);
+}
+
+// When perfect-loop mode is on, the primary logo's (p, q) direction and
+// speed determine the exact seamless period; every other logo's speed
+// is derived so its own perfect-loop direction closes at that same
+// period, keeping the whole scene in sync. No-op when the mode is off.
+function syncPerfectLoop() {
+  if (!app.settings.perfectLoop) return;
+  const primary = app.logos[0];
+  if (!primary || !primary.ready || !primary.perfectLoop) return;
+
+  const T = perfectLoopPeriodSeconds(primary, primary.speed);
+  if (!T || !isFinite(T) || T <= 0) return;
+
+  app.settings.loopLength = T;
+  document.getElementById("loopLengthVal").textContent = T.toFixed(2);
+  loopLengthInput.value = Math.min(300, Math.max(2, T));
+
+  for (let i = 1; i < app.logos.length; i++) {
+    const logo = app.logos[i];
+    if (!logo.ready || !logo.perfectLoop) continue;
+    logo.speed = (2 * logo.perfectLoop.L) / T;
+    const card = logoListEl.querySelector(`[data-logo-id="${logo.id}"]`);
+    if (!card) continue;
+    card.querySelector('[data-role="speed"]').value = Math.min(900, Math.max(20, logo.speed));
+    card.querySelector('[data-role="speedVal"]').textContent = logo.speed.toFixed(1);
+  }
+}
+
+function updateSpeedSliderLocks() {
+  for (let i = 1; i < app.logos.length; i++) {
+    const card = logoListEl.querySelector(`[data-logo-id="${app.logos[i].id}"]`);
+    const speedInput = card?.querySelector('[data-role="speed"]');
+    if (speedInput) speedInput.disabled = app.settings.perfectLoop;
+  }
 }
 
 function readyLogos() {
@@ -137,7 +174,7 @@ function setupDropZone(zoneEl, inputEl, onFile) {
 async function handleLogoFile(logo, file, cardEl) {
   await loadLogoImage(logo, file);
   const [w, h] = canvasSize();
-  initLogoSeedState(logo, w, h);
+  initLogoSeedState(logo, w, h, app.settings.perfectLoop);
   if (cardEl) {
     cardEl.querySelector('[data-role="filename"]').textContent = file.name;
     cardEl.querySelector('[data-role="dims"]').textContent = dimsText(logo);
@@ -145,6 +182,7 @@ async function handleLogoFile(logo, file, cardEl) {
   if (logo === app.logos[0]) {
     document.getElementById("uploadOverlay").hidden = true;
   }
+  syncPerfectLoop();
   refreshTransportEnabled();
 }
 
@@ -175,15 +213,18 @@ function renderLogoCard(logo, index) {
     recomputeLogoBox(logo);
     const [w, h] = canvasSize();
     clampLogoPosition(logo, w, h);
+    syncPerfectLoop();
   });
 
   const speedInput = card.querySelector('[data-role="speed"]');
   const speedVal = card.querySelector('[data-role="speedVal"]');
   speedInput.value = logo.speed;
   speedVal.textContent = logo.speed;
+  if (index > 0) speedInput.disabled = app.settings.perfectLoop;
   speedInput.addEventListener("input", () => {
     logo.speed = Number(speedInput.value);
     speedVal.textContent = logo.speed;
+    syncPerfectLoop();
   });
 
   const seedInput = card.querySelector('[data-role="seed"]');
@@ -192,8 +233,9 @@ function renderLogoCard(logo, index) {
     logo.seed = seedInput.value || "0";
     if (logo.ready) {
       const [w, h] = canvasSize();
-      initLogoSeedState(logo, w, h);
+      initLogoSeedState(logo, w, h, app.settings.perfectLoop);
       updateCornerHitDisplay();
+      syncPerfectLoop();
     }
   });
 
@@ -203,8 +245,9 @@ function renderLogoCard(logo, index) {
     seedInput.value = newSeed;
     if (logo.ready) {
       const [w, h] = canvasSize();
-      initLogoSeedState(logo, w, h);
+      initLogoSeedState(logo, w, h, app.settings.perfectLoop);
       updateCornerHitDisplay();
+      syncPerfectLoop();
     }
   });
 
@@ -243,6 +286,16 @@ const loopLengthInput = document.getElementById("loopLength");
 loopLengthInput.addEventListener("input", () => {
   app.settings.loopLength = Number(loopLengthInput.value);
   document.getElementById("loopLengthVal").textContent = app.settings.loopLength;
+});
+
+document.getElementById("perfectLoopToggle").addEventListener("change", (e) => {
+  app.settings.perfectLoop = e.target.checked;
+  loopLengthInput.disabled = app.settings.perfectLoop;
+  updateSpeedSliderLocks();
+  if (!app.settings.perfectLoop) {
+    app.settings.loopLength = Number(loopLengthInput.value);
+  }
+  resetAllToSeed();
 });
 
 document.getElementById("collisionToggle").addEventListener("change", (e) => {
