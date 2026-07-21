@@ -1,0 +1,14 @@
+services:
+  web:
+    build: ./web
+    ports:
+      - "8383:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    ports:
+      - "8384:3000"
+    restart: unless-stopped

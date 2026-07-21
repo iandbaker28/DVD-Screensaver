@@ -168,6 +168,16 @@ Single control, dual purpose:
   clean with no overlay — useful since some of these effects (esp.
   scanlines) can visibly degrade a recorded/exported clip's clarity, and
   users may want a clean export.
+- **Background**: color picker for a solid screen background (default a
+  dark charcoal to match the CRT aesthetic), plus an optional background
+  image upload (any common raster format, not limited to PNG) that
+  covers the screen behind the logo(s) when present. When an image is
+  set, sliders for blur, hue rotate, brightness, and saturation apply as
+  filters to it (same filter mechanism as logo color cycling); a
+  "remove image" control reverts to the solid color. Background
+  rendering must not interact badly with the motion-blur trail — the
+  afterimage should fade to reveal the current background each frame,
+  not progressively tint/darken a colorful background over time.
 - **Play / Pause / Reset to seed**
 - **Export**: format dropdown (mp4, mov, gif, mkv, webm at minimum) +
   export button. Triggers record → upload to `api` → conversion →
