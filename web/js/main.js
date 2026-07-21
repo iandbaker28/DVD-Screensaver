@@ -17,6 +17,7 @@ const app = {
     aspectRatio: "16:9",
     loopLength: 8,
     perfectLoop: false,
+    guaranteedCornerHit: false,
     motionBlur: 0,
     crtEnabled: true,
     collisionEnabled: false,
@@ -51,6 +52,7 @@ function resetAllToSeed() {
   app.flash = null;
   updateCornerHitDisplay();
   syncPerfectLoop();
+  applyGuaranteedCornerHitToAll();
 }
 
 function updateCornerHitDisplay() {
@@ -82,6 +84,23 @@ function syncPerfectLoop() {
     if (!card) continue;
     card.querySelector('[data-role="speed"]').value = Math.min(900, Math.max(20, logo.speed));
     card.querySelector('[data-role="speedVal"]').textContent = logo.speed.toFixed(1);
+  }
+}
+
+// When guaranteed-corner-hit mode is on, re-solves every ready logo's
+// starting position (given its already-finalized direction and speed)
+// so a genuine corner hit lands ~75% through the current loop length.
+// Must run *after* syncPerfectLoop, since in perfect-loop mode the
+// loop length and secondary logos' speeds aren't final until then.
+// Only called at reset/reseed moments (not on every live slider drag)
+// so playback doesn't visibly jump mid-tweak.
+function applyGuaranteedCornerHitToAll() {
+  if (!app.settings.guaranteedCornerHit) return;
+  const [w, h] = canvasSize();
+  const T = app.settings.loopLength;
+  for (const logo of app.logos) {
+    if (!logo.ready) continue;
+    applyGuaranteedCornerHit(logo, T, w, h);
   }
 }
 
@@ -183,6 +202,7 @@ async function handleLogoFile(logo, file, cardEl) {
     document.getElementById("uploadOverlay").hidden = true;
   }
   syncPerfectLoop();
+  applyGuaranteedCornerHitToAll();
   refreshTransportEnabled();
 }
 
@@ -236,6 +256,7 @@ function renderLogoCard(logo, index) {
       initLogoSeedState(logo, w, h, app.settings.perfectLoop);
       updateCornerHitDisplay();
       syncPerfectLoop();
+      applyGuaranteedCornerHitToAll();
     }
   });
 
@@ -248,6 +269,7 @@ function renderLogoCard(logo, index) {
       initLogoSeedState(logo, w, h, app.settings.perfectLoop);
       updateCornerHitDisplay();
       syncPerfectLoop();
+      applyGuaranteedCornerHitToAll();
     }
   });
 
@@ -295,6 +317,11 @@ document.getElementById("perfectLoopToggle").addEventListener("change", (e) => {
   if (!app.settings.perfectLoop) {
     app.settings.loopLength = Number(loopLengthInput.value);
   }
+  resetAllToSeed();
+});
+
+document.getElementById("guaranteedCornerHitToggle").addEventListener("change", (e) => {
+  app.settings.guaranteedCornerHit = e.target.checked;
   resetAllToSeed();
 });
 

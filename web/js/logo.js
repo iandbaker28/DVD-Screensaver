@@ -20,6 +20,9 @@ function createLogo() {
     // Non-null only when this logo's direction was chosen for "perfect
     // loop" mode: { p, q, signX, signY, L }. See perfectLoopPeriodSeconds.
     perfectLoop: null,
+    // Set by applyGuaranteedCornerHit: the fraction of the loop (0.5-0.8)
+    // this logo's guaranteed corner hit is targeted at.
+    cornerHitFraction: null,
   };
 }
 
@@ -144,6 +147,46 @@ function initLogoSeedState(logo, canvasWidth, canvasHeight, perfectLoop) {
 
   logo.cornerHits = 0;
   logo.autoHue = 0;
+}
+
+// The guaranteed corner hit lands at a per-seed randomized fraction of
+// the loop's total duration within this range, rather than always at
+// a fixed point — otherwise it'd hit at literally the same instant
+// every single loop, which reads as robotic rather than natural.
+const GUARANTEED_CORNER_HIT_MIN_FRACTION = 0.5;
+const GUARANTEED_CORNER_HIT_MAX_FRACTION = 0.8;
+
+// Overwrites `logo.position` so that, given its *already-finalized*
+// direction and speed, it lands exactly on a corner at a seed-chosen
+// point between 50-80% of loopDurationSeconds. Uses the same
+// unfolded-billiard-line idea as perfect loop: the unfolded position at
+// time t is start + dir*speed*t, which folds onto a real corner exactly
+// when both components are integer multiples of the box dimensions.
+// Solving backward for `start` (position is otherwise free — corner
+// hits don't care where the path began) always has a valid in-bounds
+// solution, and doesn't disturb perfect-loop periodicity, which only
+// depends on direction, not starting position.
+function applyGuaranteedCornerHit(logo, loopDurationSeconds, canvasWidth, canvasHeight) {
+  if (!logo.box || !logo.speed || !loopDurationSeconds || loopDurationSeconds <= 0) return;
+  const maxX = Math.max(0, canvasWidth - logo.box.width);
+  const maxY = Math.max(0, canvasHeight - logo.box.height);
+  if (maxX <= 0 || maxY <= 0) return; // no travel room, no corner to hit
+
+  // Independent RNG stream (seed + salt) so this doesn't reorder the
+  // direction/position draws already made from the logo's plain seed.
+  const rng = createRng(logo.seed + "|corner");
+  const fraction =
+    GUARANTEED_CORNER_HIT_MIN_FRACTION +
+    rng() * (GUARANTEED_CORNER_HIT_MAX_FRACTION - GUARANTEED_CORNER_HIT_MIN_FRACTION);
+  logo.cornerHitFraction = fraction;
+  const tc = fraction * loopDurationSeconds;
+  const totalDx = logo.dir.x * logo.speed * tc;
+  const totalDy = logo.dir.y * logo.speed * tc;
+
+  const m = Math.ceil(totalDx / maxX);
+  const n = Math.ceil(totalDy / maxY);
+
+  logo.position = { x: m * maxX - totalDx, y: n * maxY - totalDy };
 }
 
 async function loadLogoImage(logo, file) {

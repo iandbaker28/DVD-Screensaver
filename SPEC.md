@@ -157,6 +157,36 @@ capture (MediaRecorder) has inherent frame-timing jitter, so an
 exported clip's actual loop seam will be extremely close but not
 bit-exact — well below the threshold of visible stutter.
 
+### Guaranteed corner hit
+
+A "Guaranteed corner hit" toggle solves each logo's *starting position*
+(given its already-chosen direction and speed) so a genuine corner hit
+is mathematically guaranteed to land at a per-seed-randomized point
+between 50-80% of the current loop length, rather than leaving it to
+chance. Uses the same billiard-unfolding technique as perfect loop:
+since corner-hit timing depends only on direction, speed, and starting
+position — not the other way around — the starting position can always
+be solved backward to force a hit at the chosen time, for any
+direction/speed/bounds combination.
+
+- Works standalone (free/random-angle mode) using the current Loop
+  Length slider value, or combined with Perfect Loop using its computed
+  exact period — corner-hit positioning runs *after* perfect loop's
+  direction/period/derived-speeds are finalized, since it needs the
+  final loop length and each logo's final speed. Solving for a corner
+  hit only changes starting *position*, which perfect-loop periodicity
+  doesn't depend on, so combining both leaves the seamless-loop
+  guarantee intact.
+- Multi-logo: every logo gets its own independent randomized target
+  fraction and its own corner hit against the shared loop length.
+- Recomputed at reset/reseed points (manual reset, loop-boundary
+  auto-reset, aspect-ratio change, upload, seed change/randomize) —
+  not on every live speed/size slider drag, so playback doesn't jump
+  mid-tweak. A guarantee computed at the last reset stays accurate
+  until the next one.
+- Degenerate case: same as perfect loop — skipped if the logo's box
+  doesn't fit the canvas.
+
 ---
 
 ## Controls / UI
