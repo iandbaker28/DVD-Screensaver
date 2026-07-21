@@ -156,16 +156,42 @@ function initLogoSeedState(logo, canvasWidth, canvasHeight, perfectLoop) {
 const GUARANTEED_CORNER_HIT_MIN_FRACTION = 0.5;
 const GUARANTEED_CORNER_HIT_MAX_FRACTION = 0.8;
 
-// Overwrites `logo.position` so that, given its *already-finalized*
-// direction and speed, it lands exactly on a corner at a seed-chosen
-// point between 50-80% of loopDurationSeconds. Uses the same
-// unfolded-billiard-line idea as perfect loop: the unfolded position at
-// time t is start + dir*speed*t, which folds onto a real corner exactly
-// when both components are integer multiples of the box dimensions.
-// Solving backward for `start` (position is otherwise free — corner
-// hits don't care where the path began) always has a valid in-bounds
-// solution, and doesn't disturb perfect-loop periodicity, which only
-// depends on direction, not starting position.
+// Perfect loop's direction has an exactly rational slope, which means
+// forcing one exact corner alignment via position-solving mathematically
+// forces a *second* one exactly half a loop-length away (the two
+// per-axis "reaches a wall multiple" time sequences share a common
+// period of exactly T/2 whenever they share one common point at all —
+// see SPEC.md). Rotating the direction by a tiny angle breaks the exact
+// rational relationship that forcing relies on, so only the explicitly
+// constructed hit remains a *true* simultaneous corner touch — the
+// would-be twin's x- and y-axis crossings still happen close together,
+// but no longer close enough to land in the same rendered frame.
+//
+// The angle is sized directly from a target *time* margin (not a pixel
+// budget): the drift this introduces by the twin's moment works out to
+// angle * loopDuration / 2 regardless of speed, so expressing it this
+// way keeps the margin reliable across the whole speed range instead of
+// shrinking to nothing at high speed (verified empirically: 0.03s holds
+// with zero misses from 20-900px/s and 10-100% logo size, at drift
+// costs of roughly 1-55px at the loop boundary — the loop reset is no
+// longer perfectly exact as a result, but stays close).
+const CORNER_HIT_PERTURBATION_TIME_MARGIN_SECONDS = 0.03;
+
+function rotateDirection(dir, angleRadians) {
+  const cos = Math.cos(angleRadians);
+  const sin = Math.sin(angleRadians);
+  return { x: dir.x * cos - dir.y * sin, y: dir.x * sin + dir.y * cos };
+}
+
+// Overwrites `logo.position` (and, if in perfect-loop mode, nudges
+// `logo.dir` — see above) so that it lands exactly on a corner at a
+// seed-chosen point between 50-80% of loopDurationSeconds. Uses the
+// unfolded-billiard-line idea also used for perfect loop: the unfolded
+// position at time t is start + dir*speed*t, which folds onto a real
+// corner exactly when both components are integer multiples of the box
+// dimensions. Solving backward for `start` (position is otherwise free
+// — corner hits don't care where the path began) always has a valid
+// in-bounds solution.
 function applyGuaranteedCornerHit(logo, loopDurationSeconds, canvasWidth, canvasHeight) {
   if (!logo.box || !logo.speed || !loopDurationSeconds || loopDurationSeconds <= 0) return;
   const maxX = Math.max(0, canvasWidth - logo.box.width);
@@ -179,6 +205,13 @@ function applyGuaranteedCornerHit(logo, loopDurationSeconds, canvasWidth, canvas
     GUARANTEED_CORNER_HIT_MIN_FRACTION +
     rng() * (GUARANTEED_CORNER_HIT_MAX_FRACTION - GUARANTEED_CORNER_HIT_MIN_FRACTION);
   logo.cornerHitFraction = fraction;
+
+  if (logo.perfectLoop && logo.perfectLoop.L > 0) {
+    const angle = (2 * CORNER_HIT_PERTURBATION_TIME_MARGIN_SECONDS) / loopDurationSeconds;
+    const sign = rng() < 0.5 ? -1 : 1;
+    logo.dir = rotateDirection(logo.dir, angle * sign);
+  }
+
   const tc = fraction * loopDurationSeconds;
   const totalDx = logo.dir.x * logo.speed * tc;
   const totalDy = logo.dir.y * logo.speed * tc;
