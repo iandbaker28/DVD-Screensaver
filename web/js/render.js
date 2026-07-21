@@ -44,6 +44,14 @@ function backgroundFilterString(bg) {
 }
 
 function drawBackground(ctx, w, h, bg) {
+  // Always start from an opaque fill of the base color, even in image
+  // mode: a background image with its own transparency (gaps, soft
+  // edges) would otherwise only ever overwrite part of the canvas each
+  // frame, letting every previous frame's content accumulate forever
+  // underneath instead of being replaced.
+  ctx.fillStyle = bg.color;
+  ctx.fillRect(0, 0, w, h);
+
   if (bg.mode === "image" && bg.image.img) {
     const img = bg.image;
     // Overscan the cover-fit draw so a blur radius doesn't sample the
@@ -61,9 +69,6 @@ function drawBackground(ctx, w, h, bg) {
     ctx.filter = backgroundFilterString(bg);
     ctx.drawImage(img.img, drawX, drawY, drawW, drawH);
     ctx.restore();
-  } else {
-    ctx.fillStyle = bg.color;
-    ctx.fillRect(0, 0, w, h);
   }
 }
 
