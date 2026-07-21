@@ -160,8 +160,8 @@ bit-exact — well below the threshold of visible stutter.
 ### Guaranteed corner hit
 
 A "Guaranteed corner hit" toggle solves each logo's *starting position*
-(given its already-chosen direction and speed) so a genuine corner hit
-is mathematically guaranteed to land at a per-seed-randomized point
+(given its direction and speed) so a genuine corner hit is
+mathematically guaranteed to land at a per-seed-randomized point
 between 50-80% of the current loop length, rather than leaving it to
 chance. Uses the same billiard-unfolding technique as perfect loop:
 since corner-hit timing depends only on direction, speed, and starting
@@ -173,10 +173,24 @@ direction/speed/bounds combination.
   Length slider value, or combined with Perfect Loop using its computed
   exact period — corner-hit positioning runs *after* perfect loop's
   direction/period/derived-speeds are finalized, since it needs the
-  final loop length and each logo's final speed. Solving for a corner
-  hit only changes starting *position*, which perfect-loop periodicity
-  doesn't depend on, so combining both leaves the seamless-loop
-  guarantee intact.
+  final loop length and each logo's final speed.
+- **Interaction with Perfect Loop's exactness:** Perfect Loop's
+  direction has an exactly rational slope relative to the screen's
+  travel bounds. Forcing one exact corner alignment against a path with
+  that property is mathematically proven to *also* force a second,
+  unwanted corner hit exactly half a loop-length away (the two per-axis
+  "reaches a wall multiple" time sequences share a period of exactly
+  T/2 whenever they coincide once at all) — this isn't a bug, it's an
+  intrinsic property of exactly-periodic billiard paths. To keep the
+  guarantee to a single hit, the direction is nudged by a tiny angle
+  (sized from a fixed ~0.03s time margin, scaled so it holds reliably
+  across the whole speed range rather than shrinking away at high
+  speed) whenever both toggles are on together — enough to turn the
+  would-be twin into a near-miss that doesn't register, while leaving
+  the constructed hit exact. This means Perfect Loop's loop-reset is no
+  longer perfectly bit-exact when this toggle is also on (typically a
+  handful of pixels of drift at the seam, scaling with speed/size —
+  chosen over a visible extra corner hit).
 - Multi-logo: every logo gets its own independent randomized target
   fraction and its own corner hit against the shared loop length.
 - Recomputed at reset/reseed points (manual reset, loop-boundary
